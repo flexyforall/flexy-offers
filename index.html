@@ -210,7 +210,7 @@ main{position:relative;z-index:1}
   /* ---------------- offer data ----------------
      API: paste the Apps Script "Web app URL" here. The page then loads ?c=<file name> from the Offers folder.
      Without it (or without ?c=) the page shows the DEMO data below. */
-  const API = 'https://script.google.com/macros/s/AKfycbyiE18XX1OB1EK9He3m5pRtux0hF9yfq2LLzhu6gagg_TGnMuW5C9eF1Wwry0jFpPD5/exec';
+  const API = 'https://script.google.com/macros/s/AKfycbys2G6qdVEDgdajuGl436TcEL6p-_eQvoEfLq_og0EuYUVEcXGNObJT6KkcpDvJ5t6x/exec';
   const DEMO = { title: 'Offer', submitted: '', number: '', due: '', project: '', client: { name: '', company: '', address: [] }, payableTo: '', from: [], columns: [], items: [], totals: [], total: '', notes: '' };
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   const isNum = v => /^[-–+]?\s*[$€£₽]?\s*\d[\d\s.,]*\s*[$€£₽%]?$/.test(String(v).trim());
