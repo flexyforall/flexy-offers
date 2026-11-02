@@ -710,10 +710,11 @@ main{position:relative;z-index:1}
       el.src = API + '?c=' + encodeURIComponent(slug) + '&callback=' + cb;
       document.head.appendChild(el);
     });
+    let first = '';
     jsonp()
-      .catch(() => fetch(API + '?c=' + encodeURIComponent(slug)).then(r => r.json()))
+      .catch(e => { first = 'jsonp:' + ((e && e.message) || '?'); return fetch(API + '?c=' + encodeURIComponent(slug)).then(r => r.json()); })
       .then(show)
-      .catch(e => unavailable('Offer not available', (e && e.message) || 'network'));
+      .catch(e => unavailable('Offer not available', [first, 'fetch:' + ((e && e.message) || 'network')].filter(Boolean).join(' · ')));
   } else if (/^[\w-]{20,}$/.test(sheetId)) {
     loadSheet(sheetId).then(show).catch(() => unavailable('Offer not available', 'sheet-not-shared'));
   } else unavailable('Offer not available', 'no-link-params');
