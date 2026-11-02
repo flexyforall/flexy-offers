@@ -2,15 +2,18 @@
 
 Client offer pages for Flexy Global. One template, one Google Sheet per client.
 
-`https://flexyforall.github.io/flexy-offers/?c=<sheet-name>`
+`https://flexyforall.github.io/flexy-offers/?id=<Google Sheet ID>`
 
 ## New offer
-1. In Google Drive → **Offers**, make a copy of `_template` and name it with the client slug (e.g. `acme-7k2f`).
-2. Fill it in like a normal invoice. Keep the label texts (`Invoice for`, `Description`, `Subtotal`, …).
-3. Send the link with `?c=<sheet-name>`. Edits in the sheet appear on the page within a minute.
+1. In Google Drive → **Offers**, make a copy of `_template` and fill it in like a normal invoice.
+   Keep the label texts (`Invoice for`, `Description`, `Subtotal`, …).
+2. **Share → General access → Anyone with the link → Viewer.**
+3. Open `make.html` (https://flexyforall.github.io/flexy-offers/make.html), paste the sheet link, copy the client link.
 
-Files whose name starts with `_` are never served.
+Edits in the sheet show up on the page after a refresh (Google may take a minute or two).
+Unsharing the sheet closes the offer.
 
-## How it works
-- `index.html` — the page (Three.js book + sand background). The data URL is set in `const API`.
-- `apps-script/Code.gs` — the Google Apps Script web app that reads the sheet from the Offers folder and returns JSON. After changing it: Deploy → Manage deployments → Edit → New version.
+## Files
+- `index.html` — the page (Three.js book + sand). Reads the first tab of the sheet as CSV and parses it by labels.
+- `make.html` — turns a sheet link into a client link.
+- `apps-script/Code.gs` — earlier Apps Script version of the same parser; not used by the page (web app access is blocked on this account), kept for `testAcme` checks in the editor.
