@@ -41,7 +41,7 @@ a{color:inherit}
 main{position:relative;z-index:1}
 
 /* ---------- pinned stage ---------- */
-.track{position:relative;height:640vh}
+.track{position:relative;height:340vh}
 .stage{position:sticky;top:0;height:100vh;height:100lvh;overflow:hidden}
 
 .hud{position:absolute;inset:0;pointer-events:none;padding:max(28px,env(safe-area-inset-top,0px)) var(--gutR) 40px var(--gut);display:flex;flex-direction:column;justify-content:space-between}
@@ -72,7 +72,7 @@ main{position:relative;z-index:1}
 .pages{position:relative;background:var(--paper);color:var(--paper-ink);overflow:hidden;container-type:inline-size;
   box-shadow:-1px 0 0 #c9c9ce,1px 0 0 #c9c9ce,0 -1px 0 #d9d9dd,0 -2px 0 #ececef,0 -3px 0 #cfcfd4,0 -4px 0 #e7e7ea,0 -5px 0 #c6c6cb,0 -6px 0 #e2e2e5,0 -7px 0 #bcbcc2,0 1px 0 #d9d9dd,0 2px 0 #ececef,0 3px 0 #cfcfd4,0 4px 0 #e7e7ea,0 5px 0 #c6c6cb,0 6px 0 #e2e2e5,0 7px 0 #bcbcc2,0 0 0 1px rgba(0,0,0,.3)}
 .spread{padding:5cqw;display:flex;flex-direction:column;gap:4.2cqw}
-.pg{min-height:var(--pageH,auto)}
+.pg{min-height:0}
 .pg2{position:relative;border-top:1px solid var(--paper-line)}
 .pg{position:relative}
 .pg2::before,.pg:first-child::after{content:"";position:absolute;left:0;right:0;height:13cqw;pointer-events:none}
@@ -90,6 +90,13 @@ main{position:relative;z-index:1}
 .steps li::before{content:counter(st,decimal-leading-zero);grid-row:span 2;font-family:var(--f-mono);font-size:max(10px,1.2cqw);color:var(--paper-dim);padding-top:.5cqw}
 .steps b{font-weight:500;font-size:1.95cqw}
 .steps span{font-size:1.6cqw;line-height:1.45;color:rgba(13,13,13,.62)}
+.p2-lead{margin:0;font-size:2.1cqw;line-height:1.45;max-width:36em;text-wrap:pretty}
+.p2-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-top:1px solid var(--paper-line)}
+.p2-stats div{display:grid;gap:.3cqw;padding:1.2cqw 0;border-bottom:1px solid var(--paper-line)}
+.p2-stats div:nth-child(even){padding-left:1.6cqw;border-left:1px solid var(--paper-line)}
+.p2-stats b{font-weight:500;font-size:3.2cqw;line-height:1;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.p2-stats span{font-size:1.5cqw;color:rgba(13,13,13,.62)}
+.p2-note{margin:0;font-size:1.6cqw;line-height:1.45;color:rgba(13,13,13,.62)}
 .p2-foot{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4cqw;align-items:end;padding-top:2.4cqw;border-top:1px solid var(--paper-ink)}
 .p2-foot p{margin:0;font-size:2.1cqw;line-height:1.4;max-width:30em;text-wrap:pretty}
 .p2-foot p b{font-weight:500}
@@ -132,6 +139,11 @@ main{position:relative;z-index:1}
   .steps b{font-size:15px}
   .steps span{font-size:13px}
   .p2-foot{grid-template-columns:1fr;gap:10px;padding-top:16px}
+  .p2-lead{font-size:15px}
+  .p2-stats div{padding:10px 0;gap:2px}
+  .p2-stats div:nth-child(even){padding-left:12px}
+  .p2-stats b{font-size:24px}
+  .p2-stats span,.p2-note{font-size:13px}
   .p2-foot p{font-size:15px}
   .p2-foot .fine{font-size:12px}
   .sp-top{font-size:10px;padding-bottom:10px}
@@ -234,7 +246,6 @@ main{position:relative;z-index:1}
 </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
 (() => {
   const $ = id => document.getElementById(id);
@@ -394,13 +405,17 @@ main{position:relative;z-index:1}
 
   // second page of the book: what's included and what happens next
   function page2(d) {
+    const who = d.client.company || d.client.name || 'your team';
     return `
       <div class="sp-top"><span>02 · Scope &amp; next steps</span><span>${esc(d.project || 'Flexy Global')}</span></div>
+      <p class="p2-lead">Thank you for considering Flexy Global${d.project ? ' for ' + esc(d.project) : ''}. This page covers what the engagement includes, how we'll run it with ${esc(who)}, and what happens once you say yes.</p>
       <div class="p2-grid">
         <div class="p2-col"><small>What's included</small>
           <ul class="incl">
-            <li>Discovery workshop and an audit of the current product</li>
-            <li>User flows, wireframes and a clickable prototype</li>
+            <li>Discovery workshop with your team and an audit of the current product</li>
+            <li>Competitor and audience research, summarised in a short findings deck</li>
+            <li>Information architecture, user flows and wireframes</li>
+            <li>A clickable prototype tested with real users</li>
             <li>High-fidelity UI in Figma with a reusable component library</li>
             <li>Developer handoff with specs, assets and design QA</li>
           </ul>
@@ -408,16 +423,36 @@ main{position:relative;z-index:1}
         <div class="p2-col"><small>How we'll work</small>
           <ol class="steps">
             <li><b>Kickoff</b><span>Goals, users and success metrics agreed in the first week.</span></li>
-            <li><b>Design sprints</b><span>Weekly reviews, so you see progress as it happens.</span></li>
-            <li><b>Handoff</b><span>Files, specs and a walkthrough for your developers.</span></li>
+            <li><b>Research &amp; structure</b><span>Findings, flows and wireframes reviewed with you before any visual design.</span></li>
+            <li><b>Design sprints</b><span>Weekly reviews, so you see progress as it happens and can steer early.</span></li>
+            <li><b>Handoff &amp; launch</b><span>Files, specs and a walkthrough for your developers, plus QA during the build.</span></li>
           </ol>
+        </div>
+      </div>
+      <div class="p2-grid">
+        <div class="p2-col"><small>What we need from you</small>
+          <ul class="incl">
+            <li>One point of contact who can approve decisions</li>
+            <li>Access to the current product, analytics and brand assets</li>
+            <li>Feedback on each review within two business days</li>
+          </ul>
+        </div>
+        <div class="p2-col"><small>Why Flexy Global</small>
+          <div class="p2-stats">
+            <div><b>280+</b><span>projects delivered</span></div>
+            <div><b>45+</b><span>in-house specialists</span></div>
+            <div><b>15+</b><span>years of experience</span></div>
+            <div><b>5.0</b><span>rating on Clutch</span></div>
+          </div>
+          <p class="p2-note">One team for product strategy, UX/UI design, software and AI development, working as an extension of yours.</p>
         </div>
       </div>
       <div class="p2-foot">
         <p><b>Next step.</b> Reply to confirm the scope, and we'll send the contract and a kickoff date within two business days.</p>
-        <p class="fine">Prices exclude VAT. This offer is valid for 30 days from the submission date.</p>
+        <p class="fine">Prices exclude VAT. This offer is valid for 30 days from the submission date. Final scope and payment schedule are set out in the contract.</p>
       </div>`;
   }
+
 
   function fillOffer(d) {
     OFFER = d;
@@ -628,22 +663,16 @@ main{position:relative;z-index:1}
     const c = mkCanvas(1600, 1200), g = c.getContext('2d');
     g.fillStyle = '#ECECEF'; g.fillRect(0, 0, 1600, 1200);
     gutter(g, 'top');
-    g.fillStyle = 'rgba(13,13,13,.45)'; g.font = font(400, 22, MONO);
-    g.fillText('02 · WHAT WE DO', 80, 140);
-    g.fillStyle = 'rgba(13,13,13,.12)'; g.fillRect(80, 168, 1440, 2);
-    g.fillStyle = 'rgba(13,13,13,.4)'; g.fillText('02', 1500, 1130);
     return rotated(c);
   }
-  // fallback for the card face until the real card is captured
+  // the 3D pages are blank paper; the offer appears on the real page after the zoom
   function drawCardFallback() {
     const c = mkCanvas(1600, 1200), g = c.getContext('2d');
     g.fillStyle = '#ECECEF'; g.fillRect(0, 0, 1600, 1200);
-    g.fillStyle = 'rgba(13,13,13,.5)'; g.font = font(400, 20, MONO); g.fillText('01 · COMPANY OVERVIEW', 80, 110);
-    g.fillStyle = 'rgba(13,13,13,.12)'; g.fillRect(80, 135, 1440, 2);
-    g.fillStyle = '#0D0D0D'; g.font = font(500, 100); g.fillText('Company overview', 80, 300);
-    g.fillStyle = 'rgba(13,13,13,.18)'; for (let i = 0; i < 5; i++) g.fillRect(80, 360 + i * 54, i === 4 ? 700 : 1180, 22);
+    gutter(g, 'bottom', 1200);
     return rotated(c);
   }
+
 
   const paperMat = map => new THREE.MeshLambertMaterial({ map });
   const darkTex = solid('#16171a'), darkMat = paperMat(darkTex);
@@ -704,7 +733,7 @@ main{position:relative;z-index:1}
   }
 
   /* ---------------- layout ---------------- */
-  let CW, VH, s0, s1, sF, Cw, cv = 16, cardTop, pageH, cardH0, cardHfull, D, overflow = 0;
+  let longSpread = false, CW, VH, s0, s1, sF, Cw, cv = 16, cardTop, pageH, cardH0, cardHfull, D, overflow = 0;
   const pages = $('pages');
   function layout() {
     CW = document.documentElement.clientWidth; VH = stage.clientHeight;
@@ -716,54 +745,25 @@ main{position:relative;z-index:1}
 
     cv = CW > 900 ? 12 : 8;                                 // visible rim of the cover around the pages
     Cw = CW > 900 ? Math.min(1040, CW * .6) : CW - 32 - 2 * cv;
-    // page proportions follow the content, so nothing on a page is cut off (phones get taller pages)
-    pages.style.width = Cw + 'px'; pages.style.height = 'auto'; card.style.removeProperty('--pageH');
-    const need = Math.max($('spread').scrollHeight, $('spread2').scrollHeight || 0);
-    const ratio = clamp(need / Cw, .75, 1.9);
-    // final zoom: cover (pages + rim) spans Cw + 2·cv px; the rim is cv px, the page height ratio·Cw px
-    const fScale = (Cw + 2 * cv) / H, mNew = cv / fScale, wNew = ratio * Cw / fScale + mNew;
-    if (Math.abs(wNew - W) > .5 || Math.abs(mNew - M) > .05) sizeBook(wNew, mNew, 1 / fScale);
+    // the 3D book keeps classic portrait proportions; final zoom: cover width = Cw + 2·cv px
+    const fScale = (Cw + 2 * cv) / H, mNew = cv / fScale;
+    if (Math.abs(W - 300) > .5 || Math.abs(mNew - M) > .05) sizeBook(300, mNew, 1 / fScale);
 
-    const visW = W, visH = H;   // closed book: spine on the left, opens like a book on every screen
-    s0 = Math.min(VH * .5 / visH, CW * (CW < 600 ? .8 : .6) / visW);
+    s0 = Math.min(VH * .5 / H, CW * (CW < 600 ? .8 : .6) / W);
     s1 = Math.min(VH * .8 / (2 * W), CW * .86 / H);
     sF = fScale;
-    pageH = ratio * Cw;                 // one page of the open book, at card width
-    cardH0 = pageH * 2;                 // the spread: offer page + scope page
-    card.style.setProperty('--pageH', pageH + 'px');
+    pageH = (W - M) * fScale;                            // one 3D page on screen at the final zoom
     cardTop = head.offsetTop + head.offsetHeight + (CW > 900 ? 56 : 28) + cv;   // layout box, not the animated one
     card.style.setProperty('--cv', cv + 'px');
     card.style.width = Cw + 2 * cv + 'px';
     card.style.left = (CW - Cw) / 2 - cv + 'px';
     card.style.top = cardTop - cv + 'px';
-    cardHfull = pages.scrollHeight;                      // the pages end where their content ends
-    pages.style.height = cardH0 + 'px';
-    // if the book is taller than the screen, add scroll room so the reader reaches its bottom
+    pages.style.width = Cw + 'px'; pages.style.height = 'auto';
+    cardHfull = pages.scrollHeight;                      // the pages are as long as their content
+    // scroll room so the reader reaches the end of the second page
     overflow = Math.max(0, cardTop + cardHfull + cv + (CW > 900 ? 64 : 32) - VH);
-    track.style.height = `calc(640vh + ${overflow}px)`;
-    capture();
+    track.style.height = `calc(340vh + ${overflow}px)`;
     render();
-  }
-
-  let capId = 0;
-  function capture() {
-    if (!window.html2canvas) return;
-    const id = ++capId;
-    const scale = 1600 / Cw;
-    const shot = (elId, target) => html2canvas($(elId), {
-      backgroundColor: '#ECECEF', scale, logging: false,
-      onclone: doc => { const st = doc.createElement('style'); st.textContent = '.pg2::before,.pg:first-child::after{display:none!important}'; doc.head.appendChild(st); const c = doc.getElementById('card'); c.style.opacity = '1'; c.style.visibility = 'visible'; c.style.transform = 'none'; doc.getElementById('pages').style.height = 'auto'; }
-    }).then(img => {
-      if (id !== capId) return;
-      // crop to one page before mapping it onto the 3D page
-      const ph = Math.round(1600 * pageH / Cw);
-      const fit = mkCanvas(1600, ph), fg = fit.getContext('2d');
-      fg.fillStyle = '#ECECEF'; fg.fillRect(0, 0, 1600, ph);
-      fg.drawImage(img, 0, 0, Cw * scale, pageH * scale, 0, 0, 1600, ph);
-      gutter(fg, target === insideTex ? 'bottom' : 'top', ph);
-      target.image = rotated(fit); target.needsUpdate = true;
-    }).catch(() => {});
-    shot('spread', insideTex).then(() => { if ($('spread2').innerHTML) shot('spread2', page2Tex); });
   }
 
   function progress() {
@@ -781,14 +781,13 @@ main{position:relative;z-index:1}
   function render() {
     const p = progress();
     const past = scrolledPast();
-    const tHero = ease(range(p, 0, .08));
-    const tOpen = range(p, .06, .5), eO = easeIO(tOpen);
-    const tTurn = ease(range(p, .06, .42));
-    const tCover = ease(range(p, .12, .48));
-    const tZoom = ease(range(p, .54, .82));
-    const tHead = ease(range(p, .74, .86));
-    const tFade = range(p, .825, .85);
-    const tGrow = ease(range(p, .9, .97));
+    const tHero = ease(range(p, 0, .1));
+    const tOpen = range(p, .05, .42), eO = easeIO(tOpen);
+    const tTurn = ease(range(p, .05, .36));
+    const tCover = ease(range(p, .08, .42));
+    const tZoom = ease(range(p, .44, .8));
+    const tHead = ease(range(p, .7, .9));
+    const tFade = ease(range(p, .82, .97));
 
     hud.style.opacity = 1 - tHero;
     hud.style.transform = `translateY(${-tHero * 40}px)`;
@@ -799,9 +798,11 @@ main{position:relative;z-index:1}
     head.style.transform = `translateY(${(1 - tHead) * 24 - past}px)`;
     head.style.visibility = tHead > 0 ? 'visible' : 'hidden';
 
-    card.style.opacity = tFade;
-    card.style.visibility = tFade > 0 ? 'visible' : 'hidden';
-    pages.style.height = lerp(cardH0, cardHfull, tGrow) + 'px';
+    // the paper swaps in instantly (it matches the 3D page), then the content fades in on it
+    const swapped = p >= .82;
+    card.style.opacity = swapped ? 1 : 0;
+    card.style.visibility = swapped ? 'visible' : 'hidden';
+    $('spread').style.opacity = $('spread2').style.opacity = tFade;
     card.style.transform = past ? `translateY(${-past}px)` : '';
 
     // the book: turn 90° in-plane while the cover swings over the spine
@@ -820,10 +821,11 @@ main{position:relative;z-index:1}
     // anchor: the book's centre while closed, the spine once it starts turning,
     // so the spread opens out from the middle of the screen instead of sliding
     anchor.set(lerp(0, -W / 2, tTurn), 0, 0).applyEuler(book.rotation).multiplyScalar(s);
-    const targetY = lerp(lerp(lift, 0, tTurn), VH / 2 - cardTop - pageH, tZoom);
+    const openY = 0;
+    const targetY = lerp(lerp(lift, openY, tTurn), VH / 2 - cardTop - pageH, tZoom);
     book.scale.setScalar(s);
     book.position.set(-anchor.x, targetY - anchor.y, -(t + T) * s);
-    book.visible = tFade < 1;
+    book.visible = !swapped;
 
     shadowMat.opacity = .85 * (1 - tFade);
 
