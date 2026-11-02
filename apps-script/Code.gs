@@ -142,3 +142,9 @@ function parseOffer(grid) {
     notes
   };
 }
+
+/* Run this from the editor (select testAcme → Run) to check a sheet without deploying. */
+function testAcme() {
+  const out = doGet({ parameter: { c: 'acme' } });
+  Logger.log(out.getContent());
+}
