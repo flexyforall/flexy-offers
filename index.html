@@ -65,7 +65,12 @@ main{position:relative;z-index:1}
 @media (max-width:600px){.head p{display:none}}
 
 /* the card the page turns into */
-.card{position:absolute;left:0;top:0;background:var(--paper);color:var(--paper-ink);border-radius:20px;overflow:hidden;opacity:0;visibility:hidden;container-type:inline-size;box-shadow:0 30px 80px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.06)}
+.card{position:absolute;left:0;top:0;padding:var(--cv,16px);border-radius:6px;opacity:0;visibility:hidden;
+  background:linear-gradient(160deg,#2a2b31 0%,#18191d 55%,#111114 100%);
+  box-shadow:0 30px 80px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.07),inset 0 1px 0 rgba(255,255,255,.1)}
+/* the open pages: square corners, with the edges of the pages underneath showing around them */
+.pages{position:relative;background:var(--paper);color:var(--paper-ink);overflow:hidden;container-type:inline-size;
+  box-shadow:0 0 0 1px #c6c6cc,0 0 0 2px #ededf0,0 0 0 3px #cdcdd2,0 0 0 4px #e8e8eb,0 0 0 5px #c3c3c9,0 0 0 6px #e1e1e5,0 0 0 7px #b4b4ba,0 0 0 8px rgba(0,0,0,.35)}
 .spread{padding:5cqw;display:flex;flex-direction:column;gap:4.2cqw}
 .pg{min-height:var(--pageH,auto)}
 .pg2{position:relative;border-top:1px solid var(--paper-line)}
@@ -201,7 +206,7 @@ main{position:relative;z-index:1}
         <h2><span id="headLine1" class="l1"></span><span id="headLine2"></span></h2>
       </div>
 
-      <div class="card" id="card"><div class="spread pg" id="spread"></div><div class="spread pg pg2" id="spread2"></div></div>
+      <div class="card" id="card"><div class="pages" id="pages"><div class="spread pg" id="spread"></div><div class="spread pg pg2" id="spread2"></div></div></div>
     </div>
   </section>
 
@@ -531,8 +536,8 @@ main{position:relative;z-index:1}
   const key = new THREE.DirectionalLight(0xffffff, 0.46); key.position.set(-0.35, 0.45, 1); scene.add(key);
   const rim = new THREE.DirectionalLight(0xb9b4ff, 0.18); rim.position.set(1, -0.6, 0.4); scene.add(rim);
 
-  const W = 300, H = 400, t = 7, T = 26;     // cover width/height, cover thickness, page block thickness
-  const BW = W - 8, BH = H - 12;             // page block slightly smaller than the covers
+  let W = 300; const H = 400, t = 7, T = 26; // cover width/height (W grows on phones so pages fit their content), cover thickness, page block thickness
+  let BW = W - 8; const BH = H - 12;         // page block slightly smaller than the covers
 
   const mkCanvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
   const tex = c => { const tx = new THREE.CanvasTexture(c); tx.anisotropy = renderer.capabilities.getMaxAnisotropy(); tx.minFilter = THREE.LinearMipmapLinearFilter; return tx; };
@@ -548,27 +553,34 @@ main{position:relative;z-index:1}
 
   function drawCover(d) {
     d = d || OFFER;
-    const c = mkCanvas(900, 1200), g = c.getContext('2d');
-    const gr = g.createLinearGradient(0, 0, 900, 1200);
+    const cw = Math.round(1200 * W / H);
+    const c = mkCanvas(cw, 1200), g = c.getContext('2d');
+    const gr = g.createLinearGradient(0, 0, cw, 1200);
     gr.addColorStop(0, '#2a2b31'); gr.addColorStop(.55, '#18191d'); gr.addColorStop(1, '#111114');
-    g.fillStyle = gr; g.fillRect(0, 0, 900, 1200);
-    for (let i = 0; i < 9000; i++) { g.fillStyle = `rgba(255,255,255,${Math.random() * .05})`; g.fillRect(Math.random() * 900, Math.random() * 1200, 1.5, 1.5); }
-    g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(46, 0, 4, 1200);
-    g.fillStyle = 'rgba(255,255,255,.05)'; g.fillRect(50, 0, 2, 1200);
-    g.fillStyle = 'rgba(255,255,255,.72)'; g.font = font(400, 34); g.fillText('Flexy Global', 92, 120);
+    g.fillStyle = gr; g.fillRect(0, 0, cw, 1200);
+    for (let i = 0; i < 9000; i++) { g.fillStyle = `rgba(255,255,255,${Math.random() * .05})`; g.fillRect(Math.random() * cw, Math.random() * 1200, 1.5, 1.5); }
+    // drawing space: as seen on screen (upright)
+    const turned = W > H;
+    let DW = cw, DH = 1200;
+    if (turned) { g.translate(0, 1200); g.rotate(-Math.PI / 2); DW = 1200; DH = cw; }
+    // spine groove (left edge upright, top edge when the book starts turned)
+    g.fillStyle = 'rgba(0,0,0,.35)'; turned ? g.fillRect(0, 46, DW, 4) : g.fillRect(46, 0, 4, DH);
+    g.fillStyle = 'rgba(255,255,255,.05)'; turned ? g.fillRect(0, 50, DW, 2) : g.fillRect(50, 0, 2, DH);
+    const x0 = turned ? 80 : 92, y0 = turned ? 160 : 120;
+    g.fillStyle = 'rgba(255,255,255,.72)'; g.font = font(400, 34); g.fillText('Flexy Global', x0, y0);
     // title, wrapped to the cover width and shrunk if it is long
-    const title = d.title || 'Offer', maxW = 720;
+    const title = d.title || 'Offer', maxW = DW - 180;
     let size = 96, lines;
     const wrap = () => { g.font = font(500, size); const out = []; let line = '';
       title.split(/\s+/).forEach(w => { const t = line ? line + ' ' + w : w; if (g.measureText(t).width > maxW && line) { out.push(line); line = w; } else line = t; });
       out.push(line); return out; };
     do { lines = wrap(); size -= 6; } while ((lines.length > 3 || lines.some(l => g.measureText(l).width > maxW)) && size > 40);
     size += 6; g.font = font(500, size); g.fillStyle = '#fff';
-    const lh = size * 1.04, baseY = 1040 - (lines.length - 1) * lh;
-    lines.forEach((l, i) => g.fillText(l, 92, baseY + i * lh));
+    const lh = size * 1.04, baseY = DH - 160 - (lines.length - 1) * lh;
+    lines.forEach((l, i) => g.fillText(l, x0, baseY + i * lh));
     const who = d.client && (d.client.company || d.client.name);
     g.fillStyle = '#9999A8'; g.font = font(400, 24, MONO);
-    g.fillText([d.number && 'NO. ' + d.number, who && ('FOR ' + who).toUpperCase()].filter(Boolean).join('  ·  ').slice(0, 52), 94, 1110);
+    g.fillText([d.number && 'NO. ' + d.number, who && ('FOR ' + who).toUpperCase()].filter(Boolean).join('  ·  ').slice(0, 52), x0 + 2, DH - 90);
     return tex(c);
   }
   function solid(col) { const c = mkCanvas(8, 8), g = c.getContext('2d'); g.fillStyle = col; g.fillRect(0, 0, 8, 8); return tex(c); }
@@ -642,8 +654,20 @@ main{position:relative;z-index:1}
 
   const anchor = new THREE.Vector3();
 
+  function sizeBook(newW) {
+    W = newW; BW = W - 8;
+    const swap = (m, g) => { m.geometry.dispose(); m.geometry = g; };
+    swap(back, new THREE.BoxGeometry(W, H, t));
+    swap(block, new THREE.BoxGeometry(BW, BH, T)); block.position.x = -W / 2 + BW / 2 + 1;
+    swap(front, new THREE.BoxGeometry(W, H, t)); front.position.x = W / 2;
+    hinge.position.x = -W / 2;
+    swap(shadow, new THREE.PlaneGeometry(W * 1.5, H * 1.35));
+    coverMats[4].map = drawCover(OFFER); coverMats[4].needsUpdate = true;
+  }
+
   /* ---------------- layout ---------------- */
-  let CW, VH, s0, s1, sF, Cw, cardTop, pageH, cardH0, cardHfull, D, overflow = 0;
+  let CW, VH, s0, s1, sF, Cw, cv = 16, cardTop, pageH, cardH0, cardHfull, D, overflow = 0;
+  const pages = $('pages');
   function layout() {
     CW = document.documentElement.clientWidth; VH = stage.clientHeight;
     renderer.setSize(innerWidth, innerHeight, false);
@@ -652,23 +676,31 @@ main{position:relative;z-index:1}
     camera.position.set(0, 0, D); camera.near = D / 10; camera.far = D * 4;
     camera.updateProjectionMatrix();
 
-    s0 = Math.min(VH * .5 / H, CW * .6 / W);
+    cv = CW > 900 ? 16 : 8;                                 // visible rim of the cover around the pages
+    Cw = CW > 900 ? Math.min(1040, CW * .6) : CW - 32 - 2 * cv;
+    // page proportions follow the content, so nothing on a page is cut off (phones get taller pages)
+    pages.style.width = Cw + 'px'; pages.style.height = 'auto'; card.style.removeProperty('--pageH');
+    const need = Math.max($('spread').scrollHeight, $('spread2').scrollHeight || 0);
+    const ratio = clamp(need / Cw, .75, 1.9);
+    if (Math.abs(ratio * H - W) > 2) sizeBook(ratio * H);
+
+    const turned = W > H, visW = turned ? H : W, visH = turned ? W : H;   // phones: book starts upright, already turned
+    s0 = Math.min(VH * .5 / visH, CW * (CW < 600 ? .8 : .6) / visW);
     s1 = Math.min(VH * .8 / (2 * W), CW * .86 / H);
-    Cw = CW > 900 ? Math.min(1040, CW * .6) : CW - 32;
     sF = Cw / H;
     pageH = Cw * W / H;                 // one page of the open book, at card width
-    cardH0 = pageH * 2;                 // the card is the whole spread: offer page + scope page
+    cardH0 = pageH * 2;                 // the spread: offer page + scope page
     card.style.setProperty('--pageH', pageH + 'px');
     const hb = head.getBoundingClientRect(), sb = stage.getBoundingClientRect();
-    cardTop = (hb.bottom - sb.top) + (CW > 900 ? 56 : 28);
-    card.style.width = Cw + 'px';
-    card.style.left = (CW - Cw) / 2 + 'px';
-    card.style.top = cardTop + 'px';
-    card.style.height = 'auto';
-    cardHfull = card.scrollHeight;                       // the card ends where its content ends
-    card.style.height = cardH0 + 'px';
-    // if the card is taller than the screen, add scroll room so the reader reaches its bottom
-    overflow = Math.max(0, cardTop + cardHfull + (CW > 900 ? 64 : 32) - VH);
+    cardTop = (hb.bottom - sb.top) + (CW > 900 ? 56 : 28) + cv;
+    card.style.setProperty('--cv', cv + 'px');
+    card.style.width = Cw + 2 * cv + 'px';
+    card.style.left = (CW - Cw) / 2 - cv + 'px';
+    card.style.top = cardTop - cv + 'px';
+    cardHfull = pages.scrollHeight;                      // the pages end where their content ends
+    pages.style.height = cardH0 + 'px';
+    // if the book is taller than the screen, add scroll room so the reader reaches its bottom
+    overflow = Math.max(0, cardTop + cardHfull + cv + (CW > 900 ? 64 : 32) - VH);
     track.style.height = `calc(640vh + ${overflow}px)`;
     capture();
     render();
@@ -681,13 +713,14 @@ main{position:relative;z-index:1}
     const scale = 1600 / Cw;
     const shot = (elId, target) => html2canvas($(elId), {
       backgroundColor: '#ECECEF', scale, logging: false,
-      onclone: doc => { const c = doc.getElementById('card'); c.style.opacity = '1'; c.style.visibility = 'visible'; c.style.height = 'auto'; c.style.transform = 'none'; c.style.boxShadow = 'none'; c.style.borderRadius = '0'; }
+      onclone: doc => { const c = doc.getElementById('card'); c.style.opacity = '1'; c.style.visibility = 'visible'; c.style.transform = 'none'; doc.getElementById('pages').style.height = 'auto'; }
     }).then(img => {
       if (id !== capId) return;
-      // crop to one page (4:3) before mapping it onto the 3D page
-      const fit = mkCanvas(1600, 1200), fg = fit.getContext('2d');
-      fg.fillStyle = '#ECECEF'; fg.fillRect(0, 0, 1600, 1200);
-      fg.drawImage(img, 0, 0, Cw * scale, pageH * scale, 0, 0, 1600, 1200);
+      // crop to one page before mapping it onto the 3D page
+      const ph = Math.round(1600 * pageH / Cw);
+      const fit = mkCanvas(1600, ph), fg = fit.getContext('2d');
+      fg.fillStyle = '#ECECEF'; fg.fillRect(0, 0, 1600, ph);
+      fg.drawImage(img, 0, 0, Cw * scale, pageH * scale, 0, 0, 1600, ph);
       target.image = rotated(fit); target.needsUpdate = true;
     }).catch(() => {});
     shot('spread', insideTex).then(() => { if ($('spread2').innerHTML) shot('spread2', page2Tex); });
@@ -728,13 +761,14 @@ main{position:relative;z-index:1}
 
     card.style.opacity = tFade;
     card.style.visibility = tFade > 0 ? 'visible' : 'hidden';
-    card.style.height = lerp(cardH0, cardHfull, tGrow) + 'px';
+    pages.style.height = lerp(cardH0, cardHfull, tGrow) + 'px';
     card.style.transform = past ? `translateY(${-past}px)` : '';
 
     // the book: turn 90° in-plane while the cover swings over the spine
     hinge.rotation.y = -Math.PI * tCover;
     const wob = Math.sin(Math.PI * eO) * (1 - tZoom);
-    book.rotation.set(-0.42 * wob, 0.5 * wob * (1 - tCover * .6), -Math.PI / 2 * tTurn);
+    const z0 = W > H ? -Math.PI / 2 : 0;
+    book.rotation.set(-0.42 * wob, 0.5 * wob * (1 - tCover * .6), lerp(z0, -Math.PI / 2, tTurn));
 
     const lift = VH * (CW > 600 ? .07 : .04);
     const sO = lerp(s0, s1, eO);
