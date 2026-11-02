@@ -571,6 +571,7 @@ main{position:relative;z-index:1}
   const key = new THREE.DirectionalLight(0xffffff, 0.46); key.position.set(-0.35, 0.45, 1); scene.add(key);
   const rim = new THREE.DirectionalLight(0xb9b4ff, 0.18); rim.position.set(1, -0.6, 0.4); scene.add(rim);
 
+  const CLOSED_W = 300;                      // the closed book is always this portrait shape
   let W = 300; const H = 400, t = 7, T = 26; // cover width/height (W grows on phones so pages fit their content), cover thickness, page block thickness
   let M = 12;                                // cover rim around the pages (book units); set in layout to match the final card
   let BW = W - M, BH = H - 2 * M;            // page block: flush with the spine, inset by the rim elsewhere
@@ -590,7 +591,7 @@ main{position:relative;z-index:1}
 
   function drawCover(d) {
     d = d || OFFER;
-    const cw = Math.round(1200 * W / H);
+    const cw = Math.round(1200 * CLOSED_W / H);   // drawn for the closed shape; the book is squashed to it while closed
     const c = mkCanvas(cw, 1200), g = c.getContext('2d');
     const gr = g.createLinearGradient(0, 0, cw, 1200);
     gr.addColorStop(0, '#2a2b31'); gr.addColorStop(.55, '#18191d'); gr.addColorStop(1, '#111114');
@@ -752,7 +753,7 @@ main{position:relative;z-index:1}
     const wNew = Math.max(300, (VH - cardTop + 40) / fScale + mNew);
     if (Math.abs(W - wNew) > .5 || Math.abs(mNew - M) > .05) sizeBook(wNew, mNew, 1 / fScale);
 
-    s0 = Math.min(VH * .5 / H, CW * (CW < 600 ? .8 : .6) / W);
+    s0 = Math.min(VH * .5 / H, CW * (CW < 600 ? .8 : .6) / CLOSED_W);
     s1 = Math.min(VH * .8 / (2 * W), CW * .86 / H);
     sF = fScale;
     pageH = (W - M) * fScale;                            // one 3D page on screen at the final zoom
@@ -824,10 +825,12 @@ main{position:relative;z-index:1}
     const s = sO * Math.pow(sF / sO, tZoom);
     // anchor: the book's centre while closed, the spine once it starts turning,
     // so the spread opens out from the middle of the screen instead of sliding
-    anchor.set(lerp(0, -W / 2, tTurn), 0, 0).applyEuler(book.rotation).multiplyScalar(s);
+    // long pages (phones): the book is squashed to a portrait shape while closed and unfolds to full length as it turns
+    const sx = lerp(CLOSED_W / W, 1, tTurn);
+    anchor.set(lerp(0, -W / 2, tTurn) * sx, 0, 0).applyEuler(book.rotation).multiplyScalar(s);
     const openY = 0;
     const targetY = lerp(lerp(lift, openY, tTurn), VH / 2 - cardTop - pageH, tZoom);
-    book.scale.setScalar(s);
+    book.scale.set(s * sx, s, s);
     book.position.set(-anchor.x, targetY - anchor.y, -(t + T) * s);
     book.visible = !swapped;
 
