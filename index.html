@@ -568,7 +568,7 @@ main{position:relative;z-index:1}
   scene.add(shadow);
 
   /* ---------------- layout ---------------- */
-  let CW, VH, s0, s1, sF, Cw, cardTop, cardH0, cardHfull, D;
+  let CW, VH, s0, s1, sF, Cw, cardTop, cardH0, cardHfull, D, overflow = 0;
   function layout() {
     CW = document.documentElement.clientWidth; VH = stage.clientHeight;
     renderer.setSize(innerWidth, innerHeight, false);
@@ -588,8 +588,11 @@ main{position:relative;z-index:1}
     card.style.left = (CW - Cw) / 2 + 'px';
     card.style.top = cardTop + 'px';
     card.style.height = 'auto';
-    cardHfull = Math.max(cardH0, card.scrollHeight);
+    cardHfull = card.scrollHeight;                       // the card ends where its content ends
     card.style.height = cardH0 + 'px';
+    // if the card is taller than the screen, add scroll room so the reader reaches its bottom
+    overflow = Math.max(0, cardTop + cardHfull + (CW > 900 ? 64 : 32) - VH);
+    track.style.height = `calc(640vh + ${overflow}px)`;
     capture();
     render();
   }
@@ -614,11 +617,19 @@ main{position:relative;z-index:1}
 
   function progress() {
     const r = track.getBoundingClientRect();
-    return clamp(-r.top / (track.offsetHeight - VH));
+    const total = track.offsetHeight - VH, base = total - overflow;
+    return clamp(-r.top / base);
+  }
+
+  function scrolledPast() {            // pixels scrolled after the book animation has finished
+    const r = track.getBoundingClientRect();
+    const base = track.offsetHeight - VH - overflow;
+    return clamp(-r.top - base, 0, overflow);
   }
 
   function render() {
     const p = progress();
+    const past = scrolledPast();
     const tHero = ease(range(p, 0, .08));
     const tOpen = range(p, .06, .5), eO = easeIO(tOpen);
     const tTurn = ease(range(p, .06, .42));
@@ -634,12 +645,13 @@ main{position:relative;z-index:1}
     hint.style.opacity = 1 - range(p, 0, .04);
 
     head.style.opacity = tHead;
-    head.style.transform = `translateY(${(1 - tHead) * 24}px)`;
+    head.style.transform = `translateY(${(1 - tHead) * 24 - past}px)`;
     head.style.visibility = tHead > 0 ? 'visible' : 'hidden';
 
     card.style.opacity = tFade;
     card.style.visibility = tFade > 0 ? 'visible' : 'hidden';
     card.style.height = lerp(cardH0, cardHfull, tGrow) + 'px';
+    card.style.transform = past ? `translateY(${-past}px)` : '';
 
     // the book: turn 90° in-plane while the cover swings over the spine
     hinge.rotation.y = -Math.PI * tCover;
