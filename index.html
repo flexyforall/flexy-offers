@@ -65,9 +65,9 @@ main{position:relative;z-index:1}
 @media (max-width:600px){.head p{display:none}}
 
 /* the card the page turns into */
-.card{position:absolute;left:0;top:0;padding:var(--cv,16px);border-radius:6px;opacity:0;visibility:hidden;
-  background:linear-gradient(160deg,#2a2b31 0%,#18191d 55%,#111114 100%);
-  box-shadow:0 30px 80px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.07),inset 0 1px 0 rgba(255,255,255,.1)}
+.card{position:absolute;left:0;top:0;padding:var(--cv,16px);border-radius:3px;opacity:0;visibility:hidden;
+  background:#1b1c20;
+  box-shadow:0 30px 80px rgba(0,0,0,.55)}
 /* the open pages: square corners, with the edges of the pages underneath showing around them */
 .pages{position:relative;background:var(--paper);color:var(--paper-ink);overflow:hidden;container-type:inline-size;
   box-shadow:0 0 0 1px #c6c6cc,0 0 0 2px #ededf0,0 0 0 3px #cdcdd2,0 0 0 4px #e8e8eb,0 0 0 5px #c3c3c9,0 0 0 6px #e1e1e5,0 0 0 7px #b4b4ba,0 0 0 8px rgba(0,0,0,.35)}
@@ -537,7 +537,9 @@ main{position:relative;z-index:1}
   const rim = new THREE.DirectionalLight(0xb9b4ff, 0.18); rim.position.set(1, -0.6, 0.4); scene.add(rim);
 
   let W = 300; const H = 400, t = 7, T = 26; // cover width/height (W grows on phones so pages fit their content), cover thickness, page block thickness
-  let BW = W - 8; const BH = H - 12;         // page block slightly smaller than the covers
+  let M = 12;                                // cover rim around the pages (book units); set in layout to match the final card
+  let BW = W - M, BH = H - 2 * M;            // page block: flush with the spine, inset by the rim elsewhere
+  const SH_T = .6;                           // thickness of the paper sheet inside the front cover
 
   const mkCanvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
   const tex = c => { const tx = new THREE.CanvasTexture(c); tx.anisotropy = renderer.capabilities.getMaxAnisotropy(); tx.minFilter = THREE.LinearMipmapLinearFilter; return tx; };
@@ -593,6 +595,24 @@ main{position:relative;z-index:1}
     }
     return tex(c);
   }
+  // cover lining as it looks in the open book: rim of cover + 8 hairlines of page edges around the page
+  let ringUnit = 1;                          // book units per screen pixel at the final zoom (set in layout)
+  function drawLining(which) {
+    const k = 1600 / H, cw = 1600, ch = Math.max(2, Math.round(W * k));
+    const c = mkCanvas(cw, ch), g = c.getContext('2d');
+    g.fillStyle = '#1b1c20'; g.fillRect(0, 0, cw, ch);
+    const m = M * k, px = ringUnit * k;
+    // page rectangle in this half (the fold side has no rim)
+    const r = which === 'front' ? { x: m, y: m, w: cw - 2 * m, h: ch - m } : { x: m, y: 0, w: cw - 2 * m, h: ch - m };
+    const rings = ['rgba(0,0,0,.35)', '#b4b4ba', '#e1e1e5', '#c3c3c9', '#e8e8eb', '#cdcdd2', '#ededf0', '#c6c6cc'];
+    rings.forEach((col, n) => {
+      const d = (8 - n) * px;                // outermost first
+      g.fillStyle = col;
+      g.fillRect(r.x - d, r.y - (which === 'front' ? d : 0), r.w + 2 * d, r.h + d);
+    });
+    return rotated(c);
+  }
+
   // soft shadow along the fold of the open book
   function gutter(g, side) {
     const h = 150, y0 = side === 'bottom' ? 1200 : 0;
@@ -623,23 +643,29 @@ main{position:relative;z-index:1}
 
   const paperMat = map => new THREE.MeshLambertMaterial({ map });
   const darkTex = solid('#16171a'), darkMat = paperMat(darkTex);
-  const coverMats = [darkMat, darkMat, darkMat, darkMat, paperMat(drawCover()), null];
   const insideTex = tex(drawCardFallback());
   const page2Tex = tex(drawPage2());
-  coverMats[5] = paperMat(insideTex);
+  // cover lining: cover colour with the edges of the pages underneath drawn around the page area
+  const liningFront = tex(drawLining('front')), liningBack = tex(drawLining('back'));
+  const coverMats = [darkMat, darkMat, darkMat, darkMat, paperMat(drawCover()), paperMat(liningFront)];
+  const backMats = [darkMat, darkMat, darkMat, darkMat, paperMat(liningBack), darkMat];
   const edgeV = paperMat(edges(true)), edgeH = paperMat(edges(false));
+  const paperEdge = paperMat(solid('#dcdce0'));
   const blockMats = [edgeV, edgeV, edgeH, edgeH, paperMat(page2Tex), paperMat(solid('#e6e6ea'))];
+  const sheetMats = [paperEdge, paperEdge, paperEdge, paperEdge, paperEdge, paperMat(insideTex)];
 
   const book = new THREE.Group();
-  const back = new THREE.Mesh(new THREE.BoxGeometry(W, H, t), darkMat);
+  const back = new THREE.Mesh(new THREE.BoxGeometry(W, H, t), backMats);
   back.position.set(0, 0, t / 2);
   const block = new THREE.Mesh(new THREE.BoxGeometry(BW, BH, T), blockMats);
-  block.position.set(-W / 2 + BW / 2 + 1, 0, t + T / 2);
+  block.position.set(-W / 2 + BW / 2, 0, t + T / 2);
   const hinge = new THREE.Group();
   hinge.position.set(-W / 2, 0, t + T);
   const front = new THREE.Mesh(new THREE.BoxGeometry(W, H, t), coverMats);
-  front.position.set(W / 2, 0, t / 2);
-  hinge.add(front);
+  front.position.set(W / 2, 0, SH_T + t / 2);
+  const sheet = new THREE.Mesh(new THREE.BoxGeometry(W - M, H - 2 * M, SH_T), sheetMats);
+  sheet.position.set((W - M) / 2, 0, SH_T / 2);
+  hinge.add(front, sheet);
   book.add(back, block, hinge);
   scene.add(book);
 
@@ -654,15 +680,18 @@ main{position:relative;z-index:1}
 
   const anchor = new THREE.Vector3();
 
-  function sizeBook(newW) {
-    W = newW; BW = W - 8;
+  function sizeBook(newW, newM, unit) {
+    W = newW; M = newM; ringUnit = unit; BW = W - M; BH = H - 2 * M;
     const swap = (m, g) => { m.geometry.dispose(); m.geometry = g; };
     swap(back, new THREE.BoxGeometry(W, H, t));
-    swap(block, new THREE.BoxGeometry(BW, BH, T)); block.position.x = -W / 2 + BW / 2 + 1;
+    swap(block, new THREE.BoxGeometry(BW, BH, T)); block.position.x = -W / 2 + BW / 2;
     swap(front, new THREE.BoxGeometry(W, H, t)); front.position.x = W / 2;
+    swap(sheet, new THREE.BoxGeometry(W - M, H - 2 * M, SH_T)); sheet.position.x = (W - M) / 2;
     hinge.position.x = -W / 2;
     swap(shadow, new THREE.PlaneGeometry(W * 1.5, H * 1.35));
     coverMats[4].map = drawCover(OFFER); coverMats[4].needsUpdate = true;
+    liningFront.image = drawLining('front'); liningFront.needsUpdate = true;
+    liningBack.image = drawLining('back'); liningBack.needsUpdate = true;
   }
 
   /* ---------------- layout ---------------- */
@@ -682,13 +711,15 @@ main{position:relative;z-index:1}
     pages.style.width = Cw + 'px'; pages.style.height = 'auto'; card.style.removeProperty('--pageH');
     const need = Math.max($('spread').scrollHeight, $('spread2').scrollHeight || 0);
     const ratio = clamp(need / Cw, .75, 1.9);
-    if (Math.abs(ratio * H - W) > 2) sizeBook(ratio * H);
+    // final zoom: cover (pages + rim) spans Cw + 2·cv px; the rim is cv px, the page height ratio·Cw px
+    const fScale = (Cw + 2 * cv) / H, mNew = cv / fScale, wNew = ratio * Cw / fScale + mNew;
+    if (Math.abs(wNew - W) > .5 || Math.abs(mNew - M) > .05) sizeBook(wNew, mNew, 1 / fScale);
 
     const turned = W > H, visW = turned ? H : W, visH = turned ? W : H;   // phones: book starts upright, already turned
     s0 = Math.min(VH * .5 / visH, CW * (CW < 600 ? .8 : .6) / visW);
     s1 = Math.min(VH * .8 / (2 * W), CW * .86 / H);
-    sF = Cw / H;
-    pageH = Cw * W / H;                 // one page of the open book, at card width
+    sF = fScale;
+    pageH = ratio * Cw;                 // one page of the open book, at card width
     cardH0 = pageH * 2;                 // the spread: offer page + scope page
     card.style.setProperty('--pageH', pageH + 'px');
     const hb = head.getBoundingClientRect(), sb = stage.getBoundingClientRect();
@@ -745,9 +776,9 @@ main{position:relative;z-index:1}
     const tOpen = range(p, .06, .5), eO = easeIO(tOpen);
     const tTurn = ease(range(p, .06, .42));
     const tCover = ease(range(p, .12, .48));
-    const tZoom = ease(range(p, .54, .84));
+    const tZoom = ease(range(p, .54, .82));
     const tHead = ease(range(p, .74, .86));
-    const tFade = range(p, .838, .856);
+    const tFade = range(p, .825, .85);
     const tGrow = ease(range(p, .9, .97));
 
     hud.style.opacity = 1 - tHero;
