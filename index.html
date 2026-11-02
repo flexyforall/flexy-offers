@@ -699,9 +699,19 @@ main{position:relative;z-index:1}
     fillOffer(d); coverMats[4].map = drawCover(d); coverMats[4].needsUpdate = true; layout();
   };
   if (slug && /^[a-z0-9][a-z0-9-]{1,60}$/i.test(slug)) {
-    fetch(API + '?c=' + encodeURIComponent(slug))
-      .then(r => r.ok ? r.text() : Promise.reject(new Error('http-' + r.status)))
-      .then(t => { try { return JSON.parse(t); } catch (e) { throw new Error('not-json:' + t.slice(0, 40)); } })
+    // JSONP: loads the Apps Script answer as a script tag, which needs no CORS
+    const jsonp = () => new Promise((resolve, reject) => {
+      const cb = '__offer' + Date.now();
+      const el = document.createElement('script');
+      const done = () => { delete window[cb]; el.remove(); clearTimeout(timer); };
+      const timer = setTimeout(() => { done(); reject(new Error('timeout')); }, 15000);
+      window[cb] = d => { done(); resolve(d); };
+      el.onerror = () => { done(); reject(new Error('script-blocked')); };
+      el.src = API + '?c=' + encodeURIComponent(slug) + '&callback=' + cb;
+      document.head.appendChild(el);
+    });
+    jsonp()
+      .catch(() => fetch(API + '?c=' + encodeURIComponent(slug)).then(r => r.json()))
       .then(show)
       .catch(e => unavailable('Offer not available', (e && e.message) || 'network'));
   } else if (/^[\w-]{20,}$/.test(sheetId)) {

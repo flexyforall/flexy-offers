@@ -13,17 +13,28 @@ const FOLDER_ID = '1SKUYYd6hHAREBk_f9Yvj5To7bW5jRkOO'; // Google Drive → Offer
 const CACHE_SECONDS = 60;                               // edits show up on the site within a minute
 
 function doGet(e) {
-  const slug = String((e && e.parameter && e.parameter.c) || '').trim();
-  if (!/^[a-z0-9][a-z0-9-]{1,60}$/i.test(slug)) return json_({ error: 'not_found' });
+  const p = (e && e.parameter) || {};
+  const slug = String(p.c || '').trim();
+  // optional JSONP: ?callback=fn wraps the answer in fn(...), so the page can load it without CORS
+  const cb = /^[A-Za-z_$][\w$]{0,40}$/.test(p.callback || '') ? p.callback : '';
+  const send = text => cb
+    ? ContentService.createTextOutput(cb + '(' + text + ');').setMimeType(ContentService.MimeType.JAVASCRIPT)
+    : ContentService.createTextOutput(text).setMimeType(ContentService.MimeType.JSON);
+  const fail = code => send(JSON.stringify({ error: code }));
+
+  if (!/^[a-z0-9][a-z0-9-]{1,60}$/i.test(slug)) return fail('bad_link');
 
   const cache = CacheService.getScriptCache();
   const hit = cache.get('offer:' + slug);
-  if (hit) return ContentService.createTextOutput(hit).setMimeType(ContentService.MimeType.JSON);
+  if (hit) return send(hit);
 
-  const files = DriveApp.getFolderById(FOLDER_ID).getFilesByName(slug);
-  if (!files.hasNext()) return json_({ error: 'not_found' });
-  const file = files.next();
-  if (file.getMimeType() !== MimeType.GOOGLE_SHEETS) return json_({ error: 'not_found' });
+  let file;
+  try {
+    const files = DriveApp.getFolderById(FOLDER_ID).getFilesByName(slug);
+    if (!files.hasNext()) return fail('not_found');
+    file = files.next();
+  } catch (err) { return fail('no_folder_access'); }
+  if (file.getMimeType() !== MimeType.GOOGLE_SHEETS) return fail('not_a_sheet');
 
   const sheet = SpreadsheetApp.openById(file.getId()).getSheets()[0];
   const data = parseOffer(sheet.getDataRange().getDisplayValues());
@@ -32,11 +43,7 @@ function doGet(e) {
 
   const out = JSON.stringify(data);
   cache.put('offer:' + slug, out, CACHE_SECONDS);
-  return ContentService.createTextOutput(out).setMimeType(ContentService.MimeType.JSON);
-}
-
-function json_(obj) {
-  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+  return send(out);
 }
 
 /* ---------- parsing (pure function, no Google APIs) ---------- */
