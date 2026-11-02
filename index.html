@@ -67,6 +67,25 @@ main{position:relative;z-index:1}
 /* the card the page turns into */
 .card{position:absolute;left:0;top:0;background:var(--paper);color:var(--paper-ink);border-radius:20px;overflow:hidden;opacity:0;visibility:hidden;container-type:inline-size;box-shadow:0 30px 80px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.06)}
 .spread{padding:5cqw;display:flex;flex-direction:column;gap:4.2cqw}
+.pg{min-height:var(--pageH,auto)}
+.pg2{position:relative;border-top:1px solid var(--paper-line)}
+.pg2::before{content:"";position:absolute;left:0;right:0;top:0;height:4cqw;background:linear-gradient(rgba(13,13,13,.07),rgba(13,13,13,0));pointer-events:none}
+.pg2:empty{display:none}
+.p2-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5cqw}
+.p2-col{display:grid;gap:1.4cqw;align-content:start;min-width:0}
+.p2-col>small,.p2-foot small{font-family:var(--f-mono);font-size:max(10px,1.1cqw);letter-spacing:.12em;text-transform:uppercase;color:var(--paper-dim)}
+.incl{list-style:none;margin:0;padding:0;display:grid}
+.incl li{font-size:1.85cqw;line-height:1.4;padding:1.1cqw 0;border-bottom:1px solid var(--paper-line)}
+.incl li:first-child{border-top:1px solid var(--paper-line)}
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:1.8cqw;counter-reset:st}
+.steps li{display:grid;grid-template-columns:4cqw minmax(0,1fr);gap:.4cqw 1.2cqw;counter-increment:st}
+.steps li::before{content:counter(st,decimal-leading-zero);grid-row:span 2;font-family:var(--f-mono);font-size:max(10px,1.2cqw);color:var(--paper-dim);padding-top:.5cqw}
+.steps b{font-weight:500;font-size:1.95cqw}
+.steps span{font-size:1.6cqw;line-height:1.45;color:rgba(13,13,13,.62)}
+.p2-foot{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4cqw;align-items:end;padding-top:2.4cqw;border-top:1px solid var(--paper-ink)}
+.p2-foot p{margin:0;font-size:2.1cqw;line-height:1.4;max-width:30em;text-wrap:pretty}
+.p2-foot p b{font-weight:500}
+.p2-foot .fine{grid-column:1/-1;font-size:max(11px,1.3cqw);color:var(--paper-dim)}
 .sp-top{display:flex;justify-content:space-between;gap:16px;font-family:var(--f-mono);font-size:max(10px,1.2cqw);letter-spacing:.12em;text-transform:uppercase;color:var(--paper-dim);border-bottom:1px solid var(--paper-line);padding-bottom:1.6cqw}
 .sp-top span:first-child{white-space:nowrap}
 .sp-top span:last-child{text-align:right}
@@ -93,6 +112,20 @@ main{position:relative;z-index:1}
 .totals .grand b{font-weight:500;font-size:5cqw;letter-spacing:-.02em;line-height:1}
 @container (max-width:560px){
   .spread{padding:20px;gap:20px}
+  .pg{min-height:0}
+  .pg2::before{height:24px}
+  .p2-grid{grid-template-columns:1fr;gap:24px}
+  .p2-col{gap:10px}
+  .p2-col>small,.p2-foot small{font-size:10px}
+  .incl li{font-size:15px;padding:10px 0}
+  .steps{gap:14px}
+  .steps li{grid-template-columns:28px minmax(0,1fr);gap:2px 8px}
+  .steps li::before{font-size:11px;padding-top:3px}
+  .steps b{font-size:15px}
+  .steps span{font-size:13px}
+  .p2-foot{grid-template-columns:1fr;gap:10px;padding-top:16px}
+  .p2-foot p{font-size:15px}
+  .p2-foot .fine{font-size:12px}
   .sp-top{font-size:10px;padding-bottom:10px}
   .parties{grid-template-columns:1fr 1fr;gap:16px}
   .party:first-child{grid-column:span 2}
@@ -165,7 +198,7 @@ main{position:relative;z-index:1}
         <h2><span id="headLine1" class="l1"></span><span id="headLine2"></span></h2>
       </div>
 
-      <div class="card" id="card"><div class="spread" id="spread"></div></div>
+      <div class="card" id="card"><div class="spread pg" id="spread"></div><div class="spread pg pg2" id="spread2"></div></div>
     </div>
   </section>
 
@@ -351,6 +384,33 @@ main{position:relative;z-index:1}
     };
   }
 
+  // second page of the book: what's included and what happens next
+  function page2(d) {
+    return `
+      <div class="sp-top"><span>02 · Scope &amp; next steps</span><span>${esc(d.project || 'Flexy Global')}</span></div>
+      <div class="p2-grid">
+        <div class="p2-col"><small>What's included</small>
+          <ul class="incl">
+            <li>Discovery workshop and an audit of the current product</li>
+            <li>User flows, wireframes and a clickable prototype</li>
+            <li>High-fidelity UI in Figma with a reusable component library</li>
+            <li>Developer handoff with specs, assets and design QA</li>
+          </ul>
+        </div>
+        <div class="p2-col"><small>How we'll work</small>
+          <ol class="steps">
+            <li><b>Kickoff</b><span>Goals, users and success metrics agreed in the first week.</span></li>
+            <li><b>Design sprints</b><span>Weekly reviews, so you see progress as it happens.</span></li>
+            <li><b>Handoff</b><span>Files, specs and a walkthrough for your developers.</span></li>
+          </ol>
+        </div>
+      </div>
+      <div class="p2-foot">
+        <p><b>Next step.</b> Reply to confirm the scope, and we'll send the contract and a kickoff date within two business days.</p>
+        <p class="fine">Prices exclude VAT. This offer is valid for 30 days from the submission date.</p>
+      </div>`;
+  }
+
   function fillOffer(d) {
     OFFER = d;
     const who = d.client.company || d.client.name;
@@ -371,6 +431,7 @@ main{position:relative;z-index:1}
         `<td class="meta">${mids}</td></tr>`;
     }).join('');
     const totals = (d.totals || []).map(t => `<div><span>${esc(t.label)}</span><span>${esc(t.value)}</span></div>`).join('');
+    $('spread2').innerHTML = page2(d);
     $('spread').innerHTML = `
       <div class="sp-top"><span>${d.number ? 'No. ' + esc(d.number) : esc(d.title)}</span><span>${esc(dates)}</span></div>
       <div class="parties">
@@ -543,9 +604,10 @@ main{position:relative;z-index:1}
   const darkTex = solid('#16171a'), darkMat = paperMat(darkTex);
   const coverMats = [darkMat, darkMat, darkMat, darkMat, paperMat(drawCover()), null];
   const insideTex = tex(drawCardFallback());
+  const page2Tex = tex(drawPage2());
   coverMats[5] = paperMat(insideTex);
   const edgeV = paperMat(edges(true)), edgeH = paperMat(edges(false));
-  const blockMats = [edgeV, edgeV, edgeH, edgeH, paperMat(tex(drawPage2())), paperMat(solid('#e6e6ea'))];
+  const blockMats = [edgeV, edgeV, edgeH, edgeH, paperMat(page2Tex), paperMat(solid('#e6e6ea'))];
 
   const book = new THREE.Group();
   const back = new THREE.Mesh(new THREE.BoxGeometry(W, H, t), darkMat);
@@ -568,7 +630,7 @@ main{position:relative;z-index:1}
   scene.add(shadow);
 
   /* ---------------- layout ---------------- */
-  let CW, VH, s0, s1, sF, Cw, cardTop, cardH0, cardHfull, D, overflow = 0;
+  let CW, VH, s0, s1, sF, Cw, cardTop, pageH, cardH0, cardHfull, D, overflow = 0;
   function layout() {
     CW = document.documentElement.clientWidth; VH = stage.clientHeight;
     renderer.setSize(innerWidth, innerHeight, false);
@@ -581,7 +643,9 @@ main{position:relative;z-index:1}
     s1 = Math.min(VH * .8 / (2 * W), CW * .86 / H);
     Cw = CW > 900 ? Math.min(1040, CW * .6) : CW - 32;
     sF = Cw / H;
-    cardH0 = Cw * W / H;
+    pageH = Cw * W / H;                 // one page of the open book, at card width
+    cardH0 = pageH * 2;                 // the card is the whole spread: offer page + scope page
+    card.style.setProperty('--pageH', pageH + 'px');
     const hb = head.getBoundingClientRect(), sb = stage.getBoundingClientRect();
     cardTop = (hb.bottom - sb.top) + (CW > 900 ? 56 : 28);
     card.style.width = Cw + 'px';
@@ -602,17 +666,18 @@ main{position:relative;z-index:1}
     if (!window.html2canvas) return;
     const id = ++capId;
     const scale = 1600 / Cw;
-    html2canvas(card, {
+    const shot = (elId, target) => html2canvas($(elId), {
       backgroundColor: '#ECECEF', scale, logging: false,
-      onclone: doc => { const c = doc.getElementById('card'); c.style.opacity = '1'; c.style.visibility = 'visible'; c.style.height = cardH0 + 'px'; c.style.boxShadow = 'none'; c.style.borderRadius = '0'; }
+      onclone: doc => { const c = doc.getElementById('card'); c.style.opacity = '1'; c.style.visibility = 'visible'; c.style.height = 'auto'; c.style.transform = 'none'; c.style.boxShadow = 'none'; c.style.borderRadius = '0'; }
     }).then(img => {
       if (id !== capId) return;
-      // crop to the card's exact 4:3 frame before mapping it onto the page
+      // crop to one page (4:3) before mapping it onto the 3D page
       const fit = mkCanvas(1600, 1200), fg = fit.getContext('2d');
       fg.fillStyle = '#ECECEF'; fg.fillRect(0, 0, 1600, 1200);
-      fg.drawImage(img, 0, 0, Cw * scale, cardH0 * scale, 0, 0, 1600, 1200);
-      insideTex.image = rotated(fit); insideTex.needsUpdate = true;
+      fg.drawImage(img, 0, 0, Cw * scale, pageH * scale, 0, 0, 1600, 1200);
+      target.image = rotated(fit); target.needsUpdate = true;
     }).catch(() => {});
+    shot('spread', insideTex).then(() => { if ($('spread2').innerHTML) shot('spread2', page2Tex); });
   }
 
   function progress() {
@@ -661,7 +726,7 @@ main{position:relative;z-index:1}
     const lift = VH * (CW > 600 ? .07 : .04);
     const sO = lerp(s0, s1, eO);
     const yOpen = lerp(lift, -sO * W / 2, eO);
-    const yFinal = (VH / 2 - cardTop - cardH0 / 2) - sF * W;
+    const yFinal = (VH / 2 - cardTop - pageH) - sF * W / 2;
     const s = sO * Math.pow(sF / sO, tZoom);
     const y = lerp(yOpen, yFinal, tZoom);
     book.scale.setScalar(s);
@@ -696,6 +761,7 @@ main{position:relative;z-index:1}
     if (why) console.warn('[offer]', why);
     $('heroTitle').textContent = msg; $('heroTags').innerHTML = '';
     $('headLine1').textContent = msg; $('headLine2').textContent = '';
+    $('spread2').innerHTML = '';
     $('spread').innerHTML = `<div class="sp-top"><span>Flexy Global</span><span></span></div><div class="party"><b>${esc(msg)}</b><span>Please use the link you received from Flexy Global.</span>${why ? `<small style="font-family:var(--f-mono);font-size:11px;color:var(--paper-dim)">code: ${esc(why)}</small>` : ''}</div>`;
     layout();
   }
