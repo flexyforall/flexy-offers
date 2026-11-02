@@ -680,10 +680,11 @@ main{position:relative;z-index:1}
   }
   addEventListener('scroll', () => { needs = true; }, { passive: true });
   let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(layout, 120); });
-  function unavailable(msg) {
+  function unavailable(msg, why) {
+    if (why) console.warn('[offer]', why);
     $('heroTitle').textContent = msg; $('heroTags').innerHTML = '';
     $('headLine1').textContent = msg; $('headLine2').textContent = '';
-    $('spread').innerHTML = `<div class="sp-top"><span>Flexy Global</span><span></span></div><div class="party"><b>${esc(msg)}</b><span>Please use the link you received from Flexy Global.</span></div>`;
+    $('spread').innerHTML = `<div class="sp-top"><span>Flexy Global</span><span></span></div><div class="party"><b>${esc(msg)}</b><span>Please use the link you received from Flexy Global.</span>${why ? `<small style="font-family:var(--f-mono);font-size:11px;color:var(--paper-dim)">code: ${esc(why)}</small>` : ''}</div>`;
     layout();
   }
   fillOffer(DEMO);
@@ -692,14 +693,20 @@ main{position:relative;z-index:1}
   const params = new URLSearchParams(location.search);
   const slug = (params.get('c') || '').trim(), sheetId = (params.get('id') || '').trim();
   const show = d => {
-    if (!d || d.error || (!d.items.length && !d.client.name && !d.total)) { unavailable('Offer not available'); return; }
+    if (!d) { unavailable('Offer not available', 'empty-response'); return; }
+    if (d.error) { unavailable('Offer not available', 'script:' + d.error); return; }
+    if (!d.items || (!d.items.length && !d.client.name && !d.total)) { unavailable('Offer not available', 'empty-sheet'); return; }
     fillOffer(d); coverMats[4].map = drawCover(d); coverMats[4].needsUpdate = true; layout();
   };
   if (slug && /^[a-z0-9][a-z0-9-]{1,60}$/i.test(slug)) {
-    fetch(API + '?c=' + encodeURIComponent(slug)).then(r => r.json()).then(show).catch(() => unavailable('Offer not available'));
+    fetch(API + '?c=' + encodeURIComponent(slug))
+      .then(r => r.ok ? r.text() : Promise.reject(new Error('http-' + r.status)))
+      .then(t => { try { return JSON.parse(t); } catch (e) { throw new Error('not-json:' + t.slice(0, 40)); } })
+      .then(show)
+      .catch(e => unavailable('Offer not available', (e && e.message) || 'network'));
   } else if (/^[\w-]{20,}$/.test(sheetId)) {
-    loadSheet(sheetId).then(show).catch(() => unavailable('Offer not available'));
-  } else unavailable('Offer not available');
+    loadSheet(sheetId).then(show).catch(() => unavailable('Offer not available', 'sheet-not-shared'));
+  } else unavailable('Offer not available', 'no-link-params');
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { coverMats[4].map = drawCover(OFFER); coverMats[4].needsUpdate = true; layout(); });
   window.__render = () => { render(); renderer.clear(); renderer.render(sandScene, sandCam); renderer.clearDepth(); renderer.render(scene, camera); };
 })();
