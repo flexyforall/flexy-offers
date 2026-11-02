@@ -208,7 +208,11 @@ main{position:relative;z-index:1}
   const lerp = (a, b, t) => a + (b - a) * t;
 
   /* ---------------- offer data ---------------- */
-  /* Data: each client sheet is shared as "Anyone with the link → Viewer".
+  /* Two ways to load an offer:
+       ?c=<file name>   → Apps Script web app (sheets stay private, live in Drive › Offers)
+       ?id=<sheet ID>   → the sheet itself, shared as "Anyone with the link → Viewer" */
+  const API = 'https://script.google.com/macros/s/AKfycbyWz0RkUh1tN8lY0QyDGg5bNmUmhPo9vYzYqLUmDh1Pz-dJ5ojv0xoQult6_T4hj4HS/exec';
+  /* Data (?id): each client sheet is shared as "Anyone with the link → Viewer".
      The page link is  ?id=<Google Sheet ID>  and the sheet is read straight from Google as CSV. */
   const sheetUrls = id => [
     `https://docs.google.com/spreadsheets/d/${id}/export?format=csv`,
@@ -685,12 +689,16 @@ main{position:relative;z-index:1}
   fillOffer(DEMO);
   layout();
   requestAnimationFrame(loop);
-  const sheetId = (new URLSearchParams(location.search).get('id') || '').trim();
-  if (/^[\w-]{20,}$/.test(sheetId)) {
-    loadSheet(sheetId).then(d => {
-      if (!d.items.length && !d.client.name && !d.total) { unavailable('Offer not available'); return; }
-      fillOffer(d); coverMats[4].map = drawCover(d); coverMats[4].needsUpdate = true; layout();
-    }).catch(() => unavailable('Offer not available'));
+  const params = new URLSearchParams(location.search);
+  const slug = (params.get('c') || '').trim(), sheetId = (params.get('id') || '').trim();
+  const show = d => {
+    if (!d || d.error || (!d.items.length && !d.client.name && !d.total)) { unavailable('Offer not available'); return; }
+    fillOffer(d); coverMats[4].map = drawCover(d); coverMats[4].needsUpdate = true; layout();
+  };
+  if (slug && /^[a-z0-9][a-z0-9-]{1,60}$/i.test(slug)) {
+    fetch(API + '?c=' + encodeURIComponent(slug)).then(r => r.json()).then(show).catch(() => unavailable('Offer not available'));
+  } else if (/^[\w-]{20,}$/.test(sheetId)) {
+    loadSheet(sheetId).then(show).catch(() => unavailable('Offer not available'));
   } else unavailable('Offer not available');
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { coverMats[4].map = drawCover(OFFER); coverMats[4].needsUpdate = true; layout(); });
   window.__render = () => { render(); renderer.clear(); renderer.render(sandScene, sandCam); renderer.clearDepth(); renderer.render(scene, camera); };
