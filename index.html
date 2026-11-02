@@ -57,7 +57,7 @@ main{position:relative;z-index:1}
 @keyframes drip{0%{transform:scaleY(0);transform-origin:top}50%{transform:scaleY(1);transform-origin:top}51%{transform-origin:bottom}100%{transform:scaleY(0);transform-origin:bottom}}
 
 /* final headline above the card */
-.head{text-shadow:0 2px 28px rgba(0,0,0,.85);position:absolute;left:0;right:0;top:max(9vh,calc(env(safe-area-inset-top,0px) + 32px));padding-left:var(--gut);padding-right:var(--gutR);text-align:center;opacity:0;visibility:hidden}
+.head{z-index:3;text-shadow:0 2px 28px rgba(0,0,0,.85);position:absolute;left:0;right:0;top:max(9vh,calc(env(safe-area-inset-top,0px) + 32px));padding-left:var(--gut);padding-right:var(--gutR);text-align:center;opacity:0;visibility:hidden}
 .head h2{margin:0 auto;font-weight:500;font-size:clamp(34px,4.6vw,76px);line-height:1.02;letter-spacing:-.025em;text-wrap:balance;max-width:14em}
 .head h2 span{display:block;color:var(--lilac)}
 .head h2 .l1{color:var(--fg)}
@@ -668,7 +668,12 @@ main{position:relative;z-index:1}
   const sheet = new THREE.Mesh(new THREE.BoxGeometry(W - M, H - 2 * M, SH_T), sheetMats);
   sheet.position.set((W - M) / 2, 0, SH_T / 2);
   hinge.add(front, sheet);
-  book.add(back, block, hinge);
+  // binding: a rounded spine wrapping the covers and the page block
+  const spineMat = new THREE.MeshLambertMaterial({ color: 0x1d1e23 });
+  const spine = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, H, 32, 1, true, Math.PI, Math.PI), spineMat);
+  spineMat.side = THREE.DoubleSide;
+  const SPINE_BULGE = 9;
+  book.add(back, block, hinge, spine);
   scene.add(book);
 
   // soft contact shadow
@@ -724,8 +729,7 @@ main{position:relative;z-index:1}
     pageH = ratio * Cw;                 // one page of the open book, at card width
     cardH0 = pageH * 2;                 // the spread: offer page + scope page
     card.style.setProperty('--pageH', pageH + 'px');
-    const hb = head.getBoundingClientRect(), sb = stage.getBoundingClientRect();
-    cardTop = (hb.bottom - sb.top) + (CW > 900 ? 56 : 28) + cv;
+    cardTop = head.offsetTop + head.offsetHeight + (CW > 900 ? 56 : 28) + cv;   // layout box, not the animated one
     card.style.setProperty('--cv', cv + 'px');
     card.style.width = Cw + 2 * cv + 'px';
     card.style.left = (CW - Cw) / 2 - cv + 'px';
@@ -800,6 +804,10 @@ main{position:relative;z-index:1}
 
     // the book: turn 90° in-plane while the cover swings over the spine
     hinge.rotation.y = -Math.PI * tCover;
+    // spine wraps the whole closed book; as the cover opens it settles under the pages
+    const zTop = lerp(t + T + SH_T + t, t + T - 1.5, tCover);
+    spine.scale.set(SPINE_BULGE * (1 - .4 * tCover), 1, zTop / 2);
+    spine.position.set(-W / 2, 0, zTop / 2);
     const wob = Math.sin(Math.PI * eO) * (1 - tZoom);
     const z0 = W > H ? -Math.PI / 2 : 0;
     book.rotation.set(-0.28 * wob, 0.3 * wob * (1 - tCover * .6), lerp(z0, -Math.PI / 2, tTurn));
