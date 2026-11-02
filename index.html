@@ -747,13 +747,15 @@ main{position:relative;z-index:1}
     Cw = CW > 900 ? Math.min(1040, CW * .6) : CW - 32 - 2 * cv;
     // the 3D book keeps classic portrait proportions; final zoom: cover width = Cw + 2·cv px
     const fScale = (Cw + 2 * cv) / H, mNew = cv / fScale;
-    if (Math.abs(W - 300) > .5 || Math.abs(mNew - M) > .05) sizeBook(300, mNew, 1 / fScale);
+    cardTop = head.offsetTop + head.offsetHeight + (CW > 900 ? 56 : 28) + cv;   // layout box, not the animated one
+    // the first page always runs past the bottom of the screen, so the fold is never seen once we've landed
+    const wNew = Math.max(300, (VH - cardTop + 40) / fScale + mNew);
+    if (Math.abs(W - wNew) > .5 || Math.abs(mNew - M) > .05) sizeBook(wNew, mNew, 1 / fScale);
 
     s0 = Math.min(VH * .5 / H, CW * (CW < 600 ? .8 : .6) / W);
     s1 = Math.min(VH * .8 / (2 * W), CW * .86 / H);
     sF = fScale;
     pageH = (W - M) * fScale;                            // one 3D page on screen at the final zoom
-    cardTop = head.offsetTop + head.offsetHeight + (CW > 900 ? 56 : 28) + cv;   // layout box, not the animated one
     card.style.setProperty('--cv', cv + 'px');
     card.style.width = Cw + 2 * cv + 'px';
     card.style.left = (CW - Cw) / 2 - cv + 'px';
@@ -762,7 +764,7 @@ main{position:relative;z-index:1}
     cardHfull = pages.scrollHeight;                      // the pages are as long as their content
     // scroll room so the reader reaches the end of the second page
     overflow = Math.max(0, cardTop + cardHfull + cv + (CW > 900 ? 64 : 32) - VH);
-    track.style.height = `calc(340vh + ${overflow}px)`;
+    track.style.height = `calc(230vh + ${overflow}px)`;
     render();
   }
 
@@ -782,12 +784,14 @@ main{position:relative;z-index:1}
     const p = progress();
     const past = scrolledPast();
     const tHero = ease(range(p, 0, .1));
-    const tOpen = range(p, .05, .42), eO = easeIO(tOpen);
-    const tTurn = ease(range(p, .05, .36));
-    const tCover = ease(range(p, .08, .42));
-    const tZoom = ease(range(p, .44, .8));
-    const tHead = ease(range(p, .7, .9));
-    const tFade = ease(range(p, .82, .97));
+    // the camera starts diving in while the cover is still opening,
+    // so the book is never seen lying fully open — it lands on the top of the first page
+    const tOpen = range(p, .08, .55), eO = easeIO(tOpen);
+    const tTurn = ease(range(p, .08, .45));
+    const tCover = ease(range(p, .1, .55));
+    const tZoom = ease(range(p, .28, .66));
+    const tHead = ease(range(p, .58, .78));
+    const tFade = ease(range(p, .68, .88));
 
     hud.style.opacity = 1 - tHero;
     hud.style.transform = `translateY(${-tHero * 40}px)`;
@@ -799,7 +803,7 @@ main{position:relative;z-index:1}
     head.style.visibility = tHead > 0 ? 'visible' : 'hidden';
 
     // the paper swaps in instantly (it matches the 3D page), then the content fades in on it
-    const swapped = p >= .82;
+    const swapped = p >= .68;
     card.style.opacity = swapped ? 1 : 0;
     card.style.visibility = swapped ? 'visible' : 'hidden';
     $('spread').style.opacity = $('spread2').style.opacity = tFade;
