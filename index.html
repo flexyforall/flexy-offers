@@ -614,11 +614,13 @@ main{position:relative;z-index:1}
   }
 
   // soft shadow along the fold of the open book
-  function gutter(g, side) {
-    const h = 150, y0 = side === 'bottom' ? 1200 : 0;
-    const gr = g.createLinearGradient(0, y0, 0, side === 'bottom' ? 1200 - h : h);
-    gr.addColorStop(0, 'rgba(20,20,30,.20)'); gr.addColorStop(.35, 'rgba(20,20,30,.07)'); gr.addColorStop(1, 'rgba(20,20,30,0)');
-    g.fillStyle = gr; g.fillRect(0, side === 'bottom' ? 1200 - h : 0, 1600, h);
+  function gutter(g, side, ph) {
+    ph = ph || 1200;
+    const h = 1600 * .09, top = side === 'top';
+    const y0 = top ? 0 : ph, y1 = top ? h : ph - h;
+    const gr = g.createLinearGradient(0, y0, 0, y1);
+    gr.addColorStop(0, 'rgba(20,20,30,.13)'); gr.addColorStop(.35, 'rgba(20,20,30,.045)'); gr.addColorStop(1, 'rgba(20,20,30,0)');
+    g.fillStyle = gr; g.fillRect(0, top ? 0 : ph - h, 1600, h);
   }
   function drawPage2() {
     const c = mkCanvas(1600, 1200), g = c.getContext('2d');
@@ -744,7 +746,7 @@ main{position:relative;z-index:1}
     const scale = 1600 / Cw;
     const shot = (elId, target) => html2canvas($(elId), {
       backgroundColor: '#ECECEF', scale, logging: false,
-      onclone: doc => { const c = doc.getElementById('card'); c.style.opacity = '1'; c.style.visibility = 'visible'; c.style.transform = 'none'; doc.getElementById('pages').style.height = 'auto'; }
+      onclone: doc => { const st = doc.createElement('style'); st.textContent = '.pg2::before,.pg:first-child::after{display:none!important}'; doc.head.appendChild(st); const c = doc.getElementById('card'); c.style.opacity = '1'; c.style.visibility = 'visible'; c.style.transform = 'none'; doc.getElementById('pages').style.height = 'auto'; }
     }).then(img => {
       if (id !== capId) return;
       // crop to one page before mapping it onto the 3D page
@@ -752,6 +754,7 @@ main{position:relative;z-index:1}
       const fit = mkCanvas(1600, ph), fg = fit.getContext('2d');
       fg.fillStyle = '#ECECEF'; fg.fillRect(0, 0, 1600, ph);
       fg.drawImage(img, 0, 0, Cw * scale, pageH * scale, 0, 0, 1600, ph);
+      gutter(fg, target === insideTex ? 'bottom' : 'top', ph);
       target.image = rotated(fit); target.needsUpdate = true;
     }).catch(() => {});
     shot('spread', insideTex).then(() => { if ($('spread2').innerHTML) shot('spread2', page2Tex); });
@@ -799,7 +802,7 @@ main{position:relative;z-index:1}
     hinge.rotation.y = -Math.PI * tCover;
     const wob = Math.sin(Math.PI * eO) * (1 - tZoom);
     const z0 = W > H ? -Math.PI / 2 : 0;
-    book.rotation.set(-0.42 * wob, 0.5 * wob * (1 - tCover * .6), lerp(z0, -Math.PI / 2, tTurn));
+    book.rotation.set(-0.28 * wob, 0.3 * wob * (1 - tCover * .6), lerp(z0, -Math.PI / 2, tTurn));
 
     const lift = VH * (CW > 600 ? .07 : .04);
     const sO = lerp(s0, s1, eO);
