@@ -70,14 +70,14 @@ main{position:relative;z-index:1}
   box-shadow:0 30px 80px rgba(0,0,0,.55)}
 /* the open pages: square corners, with the edges of the pages underneath showing around them */
 .pages{position:relative;background:var(--paper);color:var(--paper-ink);overflow:hidden;container-type:inline-size;
-  box-shadow:0 0 0 1px #c6c6cc,0 0 0 2px #ededf0,0 0 0 3px #cdcdd2,0 0 0 4px #e8e8eb,0 0 0 5px #c3c3c9,0 0 0 6px #e1e1e5,0 0 0 7px #b4b4ba,0 0 0 8px rgba(0,0,0,.35)}
+  box-shadow:-1px 0 0 #c9c9ce,1px 0 0 #c9c9ce,0 -1px 0 #d9d9dd,0 -2px 0 #ececef,0 -3px 0 #cfcfd4,0 -4px 0 #e7e7ea,0 -5px 0 #c6c6cb,0 -6px 0 #e2e2e5,0 -7px 0 #bcbcc2,0 1px 0 #d9d9dd,0 2px 0 #ececef,0 3px 0 #cfcfd4,0 4px 0 #e7e7ea,0 5px 0 #c6c6cb,0 6px 0 #e2e2e5,0 7px 0 #bcbcc2,0 0 0 1px rgba(0,0,0,.3)}
 .spread{padding:5cqw;display:flex;flex-direction:column;gap:4.2cqw}
 .pg{min-height:var(--pageH,auto)}
 .pg2{position:relative;border-top:1px solid var(--paper-line)}
 .pg{position:relative}
-.pg2::before,.pg:first-child::after{content:"";position:absolute;left:0;right:0;height:9cqw;pointer-events:none}
-.pg2::before{top:0;background:linear-gradient(rgba(20,20,30,.13),rgba(20,20,30,.045) 35%,rgba(20,20,30,0))}
-.pg:first-child::after{bottom:0;background:linear-gradient(0deg,rgba(20,20,30,.13),rgba(20,20,30,.045) 35%,rgba(20,20,30,0))}
+.pg2::before,.pg:first-child::after{content:"";position:absolute;left:0;right:0;height:13cqw;pointer-events:none}
+.pg2::before{top:0;background:linear-gradient(rgba(20,20,30,.2),rgba(20,20,30,.1) 5%,rgba(20,20,30,.035) 30%,rgba(20,20,30,0))}
+.pg:first-child::after{bottom:0;background:linear-gradient(0deg,rgba(20,20,30,.2),rgba(20,20,30,.1) 5%,rgba(20,20,30,.035) 30%,rgba(20,20,30,0))}
 .pg2:empty{display:none}
 .p2-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5cqw}
 .p2-col{display:grid;gap:1.4cqw;align-content:start;min-width:0}
@@ -604,11 +604,14 @@ main{position:relative;z-index:1}
     const m = M * k, px = ringUnit * k;
     // page rectangle in this half (the fold side has no rim)
     const r = which === 'front' ? { x: m, y: m, w: cw - 2 * m, h: ch - m } : { x: m, y: 0, w: cw - 2 * m, h: ch - m };
-    const rings = ['rgba(0,0,0,.35)', '#b4b4ba', '#e1e1e5', '#c3c3c9', '#e8e8eb', '#cdcdd2', '#ededf0', '#c6c6cc'];
-    rings.forEach((col, n) => {
-      const d = (8 - n) * px;                // outermost first
+    const stack = ['#d9d9dd', '#ececef', '#cfcfd4', '#e7e7ea', '#c6c6cb', '#e2e2e5', '#bcbcc2'];
+    // hairline down the sides
+    g.fillStyle = '#c9c9ce'; g.fillRect(r.x - px, r.y, r.w + 2 * px, r.h);
+    // page stack on the fore-edge (away from the fold)
+    stack.forEach((col, n) => {
       g.fillStyle = col;
-      g.fillRect(r.x - d, r.y - (which === 'front' ? d : 0), r.w + 2 * d, r.h + d);
+      const y = which === 'front' ? r.y - (n + 1) * px : r.y + r.h + n * px;
+      g.fillRect(r.x, y, r.w, px + .5);
     });
     return rotated(c);
   }
@@ -616,10 +619,9 @@ main{position:relative;z-index:1}
   // soft shadow along the fold of the open book
   function gutter(g, side, ph) {
     ph = ph || 1200;
-    const h = 1600 * .09, top = side === 'top';
-    const y0 = top ? 0 : ph, y1 = top ? h : ph - h;
-    const gr = g.createLinearGradient(0, y0, 0, y1);
-    gr.addColorStop(0, 'rgba(20,20,30,.13)'); gr.addColorStop(.35, 'rgba(20,20,30,.045)'); gr.addColorStop(1, 'rgba(20,20,30,0)');
+    const h = 1600 * .13, top = side === 'top';
+    const gr = g.createLinearGradient(0, top ? 0 : ph, 0, top ? h : ph - h);
+    gr.addColorStop(0, 'rgba(20,20,30,.2)'); gr.addColorStop(.05, 'rgba(20,20,30,.1)'); gr.addColorStop(.3, 'rgba(20,20,30,.035)'); gr.addColorStop(1, 'rgba(20,20,30,0)');
     g.fillStyle = gr; g.fillRect(0, top ? 0 : ph - h, 1600, h);
   }
   function drawPage2() {
@@ -712,7 +714,7 @@ main{position:relative;z-index:1}
     camera.position.set(0, 0, D); camera.near = D / 10; camera.far = D * 4;
     camera.updateProjectionMatrix();
 
-    cv = CW > 900 ? 16 : 8;                                 // visible rim of the cover around the pages
+    cv = CW > 900 ? 12 : 8;                                 // visible rim of the cover around the pages
     Cw = CW > 900 ? Math.min(1040, CW * .6) : CW - 32 - 2 * cv;
     // page proportions follow the content, so nothing on a page is cut off (phones get taller pages)
     pages.style.width = Cw + 'px'; pages.style.height = 'auto'; card.style.removeProperty('--pageH');
