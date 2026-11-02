@@ -69,7 +69,10 @@ main{position:relative;z-index:1}
 .spread{padding:5cqw;display:flex;flex-direction:column;gap:4.2cqw}
 .pg{min-height:var(--pageH,auto)}
 .pg2{position:relative;border-top:1px solid var(--paper-line)}
-.pg2::before{content:"";position:absolute;left:0;right:0;top:0;height:4cqw;background:linear-gradient(rgba(13,13,13,.07),rgba(13,13,13,0));pointer-events:none}
+.pg{position:relative}
+.pg2::before,.pg:first-child::after{content:"";position:absolute;left:0;right:0;height:9cqw;pointer-events:none}
+.pg2::before{top:0;background:linear-gradient(rgba(20,20,30,.13),rgba(20,20,30,.045) 35%,rgba(20,20,30,0))}
+.pg:first-child::after{bottom:0;background:linear-gradient(0deg,rgba(20,20,30,.13),rgba(20,20,30,.045) 35%,rgba(20,20,30,0))}
 .pg2:empty{display:none}
 .p2-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5cqw}
 .p2-col{display:grid;gap:1.4cqw;align-content:start;min-width:0}
@@ -578,11 +581,17 @@ main{position:relative;z-index:1}
     }
     return tex(c);
   }
+  // soft shadow along the fold of the open book
+  function gutter(g, side) {
+    const h = 150, y0 = side === 'bottom' ? 1200 : 0;
+    const gr = g.createLinearGradient(0, y0, 0, side === 'bottom' ? 1200 - h : h);
+    gr.addColorStop(0, 'rgba(20,20,30,.20)'); gr.addColorStop(.35, 'rgba(20,20,30,.07)'); gr.addColorStop(1, 'rgba(20,20,30,0)');
+    g.fillStyle = gr; g.fillRect(0, side === 'bottom' ? 1200 - h : 0, 1600, h);
+  }
   function drawPage2() {
     const c = mkCanvas(1600, 1200), g = c.getContext('2d');
     g.fillStyle = '#ECECEF'; g.fillRect(0, 0, 1600, 1200);
-    const sh = g.createLinearGradient(0, 0, 0, 90); sh.addColorStop(0, 'rgba(0,0,0,.16)'); sh.addColorStop(1, 'rgba(0,0,0,0)');
-    g.fillStyle = sh; g.fillRect(0, 0, 1600, 90);
+    gutter(g, 'top');
     g.fillStyle = 'rgba(13,13,13,.45)'; g.font = font(400, 22, MONO);
     g.fillText('02 · WHAT WE DO', 80, 140);
     g.fillStyle = 'rgba(13,13,13,.12)'; g.fillRect(80, 168, 1440, 2);
@@ -626,8 +635,12 @@ main{position:relative;z-index:1}
   const shC = mkCanvas(256, 256), shG = shC.getContext('2d');
   const rg = shG.createRadialGradient(128, 128, 10, 128, 128, 128); rg.addColorStop(0, 'rgba(0,0,0,.85)'); rg.addColorStop(1, 'rgba(0,0,0,0)');
   shG.fillStyle = rg; shG.fillRect(0, 0, 256, 256);
-  const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: tex(shC), transparent: true, depthWrite: false }));
-  scene.add(shadow);
+  const shadowMat = new THREE.MeshBasicMaterial({ map: tex(shC), transparent: true, depthWrite: false, opacity: .85 });
+  const shadow = new THREE.Mesh(new THREE.PlaneGeometry(W * 1.5, H * 1.35), shadowMat);
+  shadow.position.set(0, 0, -3);                       // under the back cover, moves and tilts with the book
+  book.add(shadow);
+
+  const anchor = new THREE.Vector3();
 
   /* ---------------- layout ---------------- */
   let CW, VH, s0, s1, sF, Cw, cardTop, pageH, cardH0, cardHfull, D, overflow = 0;
@@ -725,19 +738,16 @@ main{position:relative;z-index:1}
 
     const lift = VH * (CW > 600 ? .07 : .04);
     const sO = lerp(s0, s1, eO);
-    const yOpen = lerp(lift, -sO * W / 2, eO);
-    const yFinal = (VH / 2 - cardTop - pageH) - sF * W / 2;
     const s = sO * Math.pow(sF / sO, tZoom);
-    const y = lerp(yOpen, yFinal, tZoom);
+    // anchor: the book's centre while closed, the spine once it starts turning,
+    // so the spread opens out from the middle of the screen instead of sliding
+    anchor.set(lerp(0, -W / 2, tTurn), 0, 0).applyEuler(book.rotation).multiplyScalar(s);
+    const targetY = lerp(lerp(lift, 0, tTurn), VH / 2 - cardTop - pageH, tZoom);
     book.scale.setScalar(s);
-    book.position.set(0, y, -(t + T) * s);
+    book.position.set(-anchor.x, targetY - anchor.y, -(t + T) * s);
     book.visible = tFade < 1;
 
-    shadow.visible = book.visible;
-    shadow.position.set(0, y - s * 40, -(t + T) * s - 2);
-    const shW = lerp(lerp(W, H, tTurn), H * 1.1, tZoom) * s * 1.5, shH = lerp(lerp(H, 2 * W, eO), W, tZoom) * s * 1.4;
-    shadow.scale.set(shW, shH, 1);
-    shadow.material.opacity = .9 * (1 - tFade);
+    shadowMat.opacity = .85 * (1 - tFade);
 
     sandMat.uniforms.uScroll.value = scrollY / Math.max(1, VH) * .9;
   }
